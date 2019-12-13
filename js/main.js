@@ -1,9 +1,11 @@
+import { qs, degreesToRadians, getRandomInt } from "/js/utils/helper.js";
+import mazeMapData from "/js/datas/maze.js";
+
 class MazeGame {
-  constructor() {
+  constructor({ mapData = [], modelPath = "" }) {
     this.BLOCK_WIDTH = 90;
     this.BLOCK_HEIGHT = 45;
     this.DINO_SCALE = 20;
-    this.DINO_MODEL_PATH = "./models/dino.json";
     this.DINO_SPEED = 1000;
     this.PALYER_SPEED = 1500;
     this.PLAYER_COLLISION_DISTANCE = 30;
@@ -26,7 +28,9 @@ class MazeGame {
 
     // 충돌을 체크하기 위한 객체의 배열
     this.collidableObjects = [];
+    this.mapData = mapData;
     this.mapSize = null;
+    this.modelPath = modelPath;
     this.moveDirection = {
       forward: false,
       backward: false,
@@ -58,10 +62,10 @@ class MazeGame {
 
   initElements = () => {
     this.el = {
-      container: this.qs("#container"),
-      blocker: this.qs("#blocker"),
-      instructions: this.qs("#instructions"),
-      dinoAlert: this.qs("#dino-alert")
+      container: qs("#container"),
+      blocker: qs("#blocker"),
+      instructions: qs("#instructions"),
+      dinoAlert: qs("#dino-alert")
     };
   };
 
@@ -108,32 +112,11 @@ class MazeGame {
 
   initLoader = () => {
     this.loader = new THREE.JSONLoader();
-    this.loader.load(this.DINO_MODEL_PATH, this.createDinoModel);
+
+    this.loader.load(this.modelPath, this.createDinoModel);
   };
 
   createMazeCubes = () => {
-    const map = [
-      [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-      [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0],
-      [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-      [1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-      [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1],
-      [0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-      [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0],
-      [1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1],
-      [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0],
-      [1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-      [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0],
-      [0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0],
-      [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0]
-    ];
     const widthOffset = this.BLOCK_WIDTH / 2; // x축과 z축의 추가 간격
     const heightOffset = this.BLOCK_HEIGHT / 2; // y축의 추가 간격 (블럭과 바닥 사이의 간격)
     const cubeGeo = new THREE.BoxGeometry(
@@ -144,11 +127,11 @@ class MazeGame {
     const cubeMat = new THREE.MeshPhongMaterial({
       color: this.COLOR.CUBE
     });
-    const totalCubesWide = map[0].length;
+    const totalCubesWide = this.mapData[0] ? this.mapData[0].length : 0;
 
     for (let i = 0; i < totalCubesWide; i++) {
-      for (let j = 0, len = map[i].length; j < len; j++) {
-        if (map[i][j]) {
+      for (let j = 0, len = this.mapData[i].length; j < len; j++) {
+        if (this.mapData[i][j]) {
           const cube = new THREE.Mesh(cubeGeo, cubeMat);
 
           cube.position.z =
@@ -183,7 +166,7 @@ class MazeGame {
       // 왼쪽/오른쪽 외벽 생성
       perimWallLR.position.set(halfMap * sign, this.BLOCK_HEIGHT / 2, 0);
       // 기본이 가로로 되어있으므로 90도 회전시켜서 세로 방향으로 변경한다
-      perimWallLR.rotation.y = this.degreesToRadians(90);
+      perimWallLR.rotation.y = degreesToRadians(90);
 
       // 앞/뒤 외벽 생성
       perimWallFB.position.set(0, this.BLOCK_HEIGHT / 2, halfMap * sign);
@@ -208,7 +191,7 @@ class MazeGame {
     const ground = new THREE.Mesh(groundGeo, groundMat);
 
     ground.position.set(0, 1, 0);
-    ground.rotation.x = this.degreesToRadians(90);
+    ground.rotation.x = degreesToRadians(90);
 
     this.scene.add(ground);
   };
@@ -231,7 +214,7 @@ class MazeGame {
     );
 
     dinoObject.scale.set(this.DINO_SCALE, this.DINO_SCALE, this.DINO_SCALE);
-    dinoObject.rotation.y = this.degreesToRadians(-60);
+    dinoObject.rotation.y = degreesToRadians(-60);
     dinoObject.position.set(0, 0, -400);
     dinoObject.name = "dino";
 
@@ -310,8 +293,8 @@ class MazeGame {
     // 정면에 있는 오브젝트와 충돌했으면
     if (this.detectDinoCollision()) {
       const directionMultiples = [-1, 1, 2];
-      const randomIndex = this.getRandomInt({ min: 0, max: 2 });
-      const randomDirection = this.degreesToRadians(
+      const randomIndex = getRandomInt({ min: 0, max: 2 });
+      const randomDirection = degreesToRadians(
         90 * directionMultiples[randomIndex]
       );
 
@@ -425,13 +408,13 @@ class MazeGame {
 
     if (backward) {
       rotationMatrix = new THREE.Matrix4();
-      rotationMatrix.makeRotationY(this.degreesToRadians(180));
+      rotationMatrix.makeRotationY(degreesToRadians(180));
     } else if (left) {
       rotationMatrix = new THREE.Matrix4();
-      rotationMatrix.makeRotationY(this.degreesToRadians(90));
+      rotationMatrix.makeRotationY(degreesToRadians(90));
     } else if (right) {
       rotationMatrix = new THREE.Matrix4();
-      rotationMatrix.makeRotationY(this.degreesToRadians(270));
+      rotationMatrix.makeRotationY(degreesToRadians(270));
     }
 
     // 플레이어가 앞으로 이동하지 않을 때 행렬 매트릭스 적용 (플레이어가 바라보는 카메라 방향 전환)
@@ -498,18 +481,6 @@ class MazeGame {
     this.gameOver = true;
   };
 
-  qs = name => {
-    return document.querySelector(name);
-  };
-
-  degreesToRadians = degrees => {
-    return (degrees * Math.PI) / 180;
-  };
-
-  radiansToDegrees = radians => {
-    return (radians * 180) / Math.PI;
-  };
-
   rayIntersect = ({ ray, distance }) => {
     const intersects = ray.intersectObjects(this.collidableObjects);
 
@@ -520,12 +491,9 @@ class MazeGame {
     }
     return false;
   };
-
-  getRandomInt = ({ min, max }) => {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min)) + min;
-  };
 }
 
-new MazeGame().init();
+new MazeGame({
+  mapData: mazeMapData,
+  modelPath: "./models/dino.json"
+}).init();
