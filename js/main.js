@@ -1,5 +1,5 @@
-import { qs, degreesToRadians, getRandomInt } from "/js/utils/helper.js";
-import mazeMapData from "/js/datas/maze.js";
+import { qs, degreesToRadians, getRandomInt } from "../js/utils/helper.js";
+import mazeMapData from "../js/datas/maze.js";
 
 class MazeGame {
   constructor({ mapData = [], modelPath = "" }) {
