@@ -6,15 +6,14 @@ class MazeGame {
     this.BLOCK_WIDTH = 90;
     this.BLOCK_HEIGHT = 45;
     this.DINO_SCALE = 20;
-    this.DINO_SPEED = 1000;
+    this.DINO_SPEED = 800;
     this.PALYER_SPEED = 1500;
-    this.PLAYER_COLLISION_DISTANCE = 30;
-    this.DINO_COLLISION_DISTANCE = 70;
+    this.PLAYER_COLLISION_DISTANCE = 50;
+    this.DINO_COLLISION_DISTANCE = 80;
     this.CATCH_OFFSET = 120;
     this.COLOR = {
       FOG: "#cccccc",
       LIGHT: "#ffffff",
-      CUBE: "#1279e0",
       GROUND: "#001230",
       PERIMETER_WALL: "#353535"
     };
@@ -43,6 +42,8 @@ class MazeGame {
     // 케릭터를 프레임마다 일정하게 움직이게 하기 위해서 해당 값을 곱합니다.
     this.clock = new THREE.Clock();
     this.dino = null;
+    this.dinoStep = 0;
+    this.playerStep = 0;
     this.gameOver = false;
   }
 
@@ -93,10 +94,10 @@ class MazeGame {
 
   initCamera = () => {
     this.camera = new THREE.PerspectiveCamera(
-      60,
+      50,
       window.innerWidth / window.innerHeight,
-      1,
-      2000
+      0.1,
+      1000
     );
     this.camera.position.y = 20;
     this.camera.position.x = 0;
@@ -124,14 +125,14 @@ class MazeGame {
       this.BLOCK_HEIGHT, // 미로 벽 높이
       this.BLOCK_WIDTH // 미로 벽 세로길이
     );
-    const cubeMat = new THREE.MeshPhongMaterial({
-      color: this.COLOR.CUBE
-    });
     const totalCubesWide = this.mapData[0] ? this.mapData[0].length : 0;
 
     for (let i = 0; i < totalCubesWide; i++) {
       for (let j = 0, len = this.mapData[i].length; j < len; j++) {
         if (this.mapData[i][j]) {
+          const cubeMat = new THREE.MeshPhongMaterial({
+            color: Math.random() * 0xffffff
+          });
           const cube = new THREE.Mesh(cubeGeo, cubeMat);
 
           cube.position.z =
@@ -277,10 +278,15 @@ class MazeGame {
     if ([forward, backward, left, right].every(v => !v)) {
       this.playerVelocity.x = 0;
       this.playerVelocity.z = 0;
+      this.playerVelocity.y = 0;
+    } else {
+      this.playerStep += 0.2;
+      this.playerVelocity.y = 20 * Math.cos(this.playerStep);
     }
 
     this.controls.getObject().translateX(this.playerVelocity.x * delta);
     this.controls.getObject().translateZ(this.playerVelocity.z * delta);
+    this.controls.getObject().translateY(this.playerVelocity.y * delta);
   };
 
   animateDino = delta => {
@@ -305,6 +311,7 @@ class MazeGame {
       this.dinoVelocity.z += this.DINO_SPEED * delta;
     }
 
+    this.dino.position.y = 3;
     this.dino.translateZ(this.dinoVelocity.z * delta);
   };
 
@@ -340,6 +347,8 @@ class MazeGame {
   };
 
   render = () => {
+    this.dinoStep += 0.2;
+    this.dino.position.y += 2 * Math.cos(this.dinoStep);
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -400,13 +409,25 @@ class MazeGame {
   };
 
   detectPlayerCollision = () => {
-    const { backward, left, right } = this.moveDirection;
+    const { forward, backward, left, right } = this.moveDirection;
     const cameraDirection = this.controls
       .getDirection(new THREE.Vector3(0, 0, 0))
       .clone();
     let rotationMatrix = null;
 
-    if (backward) {
+    if (forward && left) {
+      rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationY(degreesToRadians(45));
+    } else if (forward && right) {
+      rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationY(degreesToRadians(315));
+    } else if (backward && left) {
+      rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationY(degreesToRadians(125));
+    } else if (backward && right) {
+      rotationMatrix = new THREE.Matrix4();
+      rotationMatrix.makeRotationY(degreesToRadians(225));
+    } else if (backward) {
       rotationMatrix = new THREE.Matrix4();
       rotationMatrix.makeRotationY(degreesToRadians(180));
     } else if (left) {
